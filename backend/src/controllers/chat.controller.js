@@ -1,22 +1,32 @@
-const chatModel = require("../models/chat.model");
+const chatModel = require('../models/chat.model');
 
 
-const createChat = async (req, res)=>{
-    try {
-        const {title} = req.body;
-        const chat = await chatModel.create({
-            title,
-            user:user.id,
-        });
 
-        res.status(201).json({
-            message: "Chat Created Successfullly.",
-            chat
-        })
-    } catch (error) {
-        
-    }
-};
+async function createChat(req, res) {
+    const { title } = req.body;
+
+    const chat = await chatModel.create({
+        title,
+        user: req.user.id
+    })
+
+    res.status(201).json({
+        message: "Chat created successfully",
+        chat
+    })
 
 
-module.exports = {createChat};
+}
+
+
+async function getUserChats(req, res) {
+    const chats = await chatModel.find({ user: req.user.id }).sort({ createdAt: -1 });
+    res.status(200).json({
+        chats
+    })
+}
+
+module.exports = {
+    createChat,
+    getUserChats
+}
