@@ -48,9 +48,22 @@ const loginUserValidation = [
         .withMessage("Password is required"),
 
     validateResults
+];
+
+
+const createChatValidation = [
+    body("title")
+    .isString()
+        .withMessage("Title must be a string")
+        .notEmpty()
+        .withMessage("Title is required")
+        .isLength({ min: 3, max: 50 })
+        .withMessage("Title must be between 3 and 50 characters"),
+    validateResults
 ]
 
 module.exports = {
     registerUserValidation,
-    loginUserValidation
+    loginUserValidation,
+    createChatValidation
 }
