@@ -1,11 +1,12 @@
-const { Server } = require("socket.io");
-
+const { Server } = require("socket.io")
 const cookie = require("cookie")
 const jwt = require("jsonwebtoken")
 const aiService = require("../services/ai.service")
+const messageModel = require("../models/message.model")
 
-function initSocket(httpServer){
-    const io  = new Server(httpServer);
+
+function initSocket(httpServer) {
+    const io = new Server(httpServer)
 
 
     io.use((socket, next) => {
@@ -28,30 +29,52 @@ function initSocket(httpServer){
             return next(new Error("Invalid token"))
         }
 
-    });
-    
-    io.on("connection",(socket)=>{
-        console.log("A User Connected");
+    })
+
+    io.on("connection", (socket) => {
+        console.log("A user connected")
 
         console.log(socket.user)
 
         socket.on("ai-message", async (message) => {
 
-            // const response = await aiService.generateResult(message)
-            // socket.emit("ai-response", response)
-
-            aiService.generateStream(message, (textChunk) => {
-                socket.emit("ai-response", textChunk)
+            await messageModel.create({
+                chat: message.chat,
+                user: socket.user.id,
+                role: "user",
+                text: message.text
             })
 
-        });
-        
-        
-        socket.on("disconnect",()=>{
-            console.log("user is desconnected.");
-            
+            const history = (await messageModel.find({
+                chat: message.chat
+            })).map(message => ({
+                role: message.role,
+                parts: [ {
+                    text: message.text
+                } ]
+            }))
+
+
+            const result = await aiService.generateStream(history, (text) => {
+                socket.emit("ai-response", {
+                    chat: message.chat,
+                    text
+                })
+            })
+
+            await messageModel.create({
+                chat: message.chat,
+                user: socket.user.id,
+                role: "model",
+                text: result
+            })
+
+        })
+
+        socket.on("disconnect", () => {
+            console.log("A user disconnected")
         })
     })
-};
+}
 
-module.exports = initSocket;
+module.exports = initSocket
